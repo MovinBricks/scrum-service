@@ -15,7 +15,7 @@ app.use(bodyParser());
 // 路由处理
 router(app)
 
-const server = app.listen(9000, () => {
+const server = app.listen(5387, () => {
     console.log('application start');
 });
 

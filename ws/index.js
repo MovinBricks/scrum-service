@@ -11,20 +11,20 @@ module.exports = (server) => {
         server,
     });
 
-    const interval = setInterval(function ping() {
-        wss.clients.forEach((ws) => {
-            if (ws.isAlive === false) {
-                return ws.terminate();
-            }
+    // const interval = setInterval(function ping() {
+    //     wss.clients.forEach((ws) => {
+    //         if (ws.isAlive === false) {
+    //             return ws.terminate();
+    //         }
 
-            ws.isAlive = false;
-            ws.ping(noop);
-        })
-    });
+    //         ws.isAlive = false;
+    //         ws.ping(noop);
+    //     })
+    // });
 
-    function heartbeat() {
-        this.isAlive = true;
-    }
+    // function heartbeat() {
+    //     this.isAlive = true;
+    // }
 
     wss.APP_INFO = new ApplicationInfo();
 
@@ -38,12 +38,12 @@ module.exports = (server) => {
 
     wss.on('connection', function (ws, req) {
         console.log(`[SERVER] connection()`);
-        const clientIp = req.headers['x-forwarded-for'].split(/\s*,\s*/)[0];
-        ws.clientIp = clientIp;
+        // const clientIp = req.headers['x-forwarded-for'].split(/\s*,\s*/)[0];
+        // ws.clientIp = clientIp;
 
-        ws.isAlive = true;
+        // ws.isAlive = true;
 
-        ws.on('pong', heartbeat);
+        // ws.on('pong', heartbeat);
 
         ws.on('message', function (data) {
             const message = JSON.parse(data);
