@@ -2,7 +2,7 @@
 node service websocket
 
 ## 本地调试
-推荐使用nodemon，可以支持热更新
+推荐使用nodemon，可以支持热更新
 ### DEV
 ```
 npm run dev

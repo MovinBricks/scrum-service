@@ -23,8 +23,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@thrid.github.com:longfengno1/scrum-service.git"
+    "url": "git@github.com:MovinBricks/scrum-service.git"
   },
-  "author": "longfengno1",
+  "author": "MovinBricks",
   "license": "MIT"
 }
