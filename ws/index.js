@@ -64,6 +64,7 @@ module.exports = (server) => {
     wss.broadcast = (data) => {
         const broadcastMsg = Object.assign({}, data, { isBroadcast: true });
 
+        console.log('broadcast:', JSON.stringify(broadcastMsg));
         wss.APP_INFO.master.sendMessage(broadcastMsg);
         wss.APP_INFO.clients.forEach((item) => {
             item.sendMessage(broadcastMsg);
@@ -126,7 +127,7 @@ module.exports = (server) => {
                             wss.broadcast({
                                 type: 'JOIN_USER',
                                 userInfo: ws.userInfo,
-                                users: wss.APP_INFO.clients.map(item => item.userInfo),
+                                users: [...wss.APP_INFO.clients.map(item => item.userInfo), ws.userInfo],
                             });
                             wss.APP_INFO.clients.push(ws);
 
@@ -150,6 +151,7 @@ module.exports = (server) => {
                             wss.broadcast({
                                 type,
                                 userInfo: ws.userInfo,
+                                users: wss.APP_INFO.clients.map(item => item.userInfo),
                             });
                         }
 
@@ -199,7 +201,11 @@ module.exports = (server) => {
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
-                            })
+                            });
+                            wss.broadcast({
+                                type,
+                                users: wss.APP_INFO.clients.map(item => item.userInfo),
+                            });
                         } else {
                             ws.sendMessage({
                                 type,
@@ -210,10 +216,10 @@ module.exports = (server) => {
 
                         break;
                     case TYPE.SHOW:
-                        ws.sendMessage({
+                        wss.broadcast({
                             type,
                             status: STATUS.SUCCESS,
-                        })
+                        });
                         break;
                     case TYPE.RESTART:
                         wss.broadcast({
@@ -237,7 +243,7 @@ module.exports = (server) => {
 
                 ws.sendMessage(errMessage);
             }
-            
+
         });
 
         ws.on('close', function (data) {
