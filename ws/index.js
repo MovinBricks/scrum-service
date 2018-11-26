@@ -64,6 +64,7 @@ module.exports = (server) => {
     wss.broadcast = (data) => {
         const broadcastMsg = Object.assign({}, data, { isBroadcast: true });
 
+        wss.APP_INFO.master.sendMessage(broadcastMsg);
         wss.APP_INFO.clients.forEach((item) => {
             item.sendMessage(broadcastMsg);
         });
