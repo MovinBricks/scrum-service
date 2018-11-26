@@ -125,7 +125,8 @@ module.exports = (server) => {
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
                             wss.broadcast({
                                 type: 'JOIN_USER',
-                                userInfo,
+                                userInfo: ws.userInfo,
+                                users: wss.APP_INFO.clients.map(item => item.userInfo),
                             });
                             wss.APP_INFO.clients.push(ws);
 
@@ -236,17 +237,15 @@ module.exports = (server) => {
 
                 ws.sendMessage(errMessage);
             }
-
-
-            ws.send(JSON.stringify(message), (err) => {
-                if (err) {
-                    console.log(`[SERVER] error: ${err}`);
-                }
-            });
+            
         });
 
         ws.on('close', function (data) {
-            wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
+            wss.APP_INFO.clients = wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
+            wss.broadcast({
+                userInfo: ws.userInfo,
+                users: wss.APP_INFO.clients.map(item => item.userInfo),
+            })
         });
     });
 }
