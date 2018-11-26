@@ -99,29 +99,42 @@ module.exports = (server) => {
             try {
                 switch (type) {
                     case TYPE.CREATE:
-                        const newRoomID = uuidv4().slice(0, 4).toUpperCase();
+                        if (wss.APP_INFO.master && ws.userInfo.uid && wss.APP_INFO.roomID) {
+                            ws.sendMessage({
+                                type,
+                                roomID: wss.APP_INFO.roomID,
+                                status: STATUS.SUCCESS,
+                            });
+                        } else {
+                            const newRoomID = uuidv4().slice(0, 4).toUpperCase();
 
-                        wss.APP_INFO.init();
-                        ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
-                        wss.APP_INFO.master = ws;
-                        wss.APP_INFO.roomID = newRoomID;
+                            wss.APP_INFO.init();
+                            ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
+                            wss.APP_INFO.master = ws;
+                            wss.APP_INFO.roomID = newRoomID;
 
-                        ws.sendMessage({
-                            type,
-                            roomID: newRoomID,
-                            status: STATUS.SUCCESS,
-                        });
-                        console.log('CREATE triggered');
+                            ws.sendMessage({
+                                type,
+                                roomID: newRoomID,
+                                status: STATUS.SUCCESS,
+                            });
+                        }
 
                         break;
                     case TYPE.JOIN:
-                        if (!wss.APP_INFO.roomID || wss.APP_INFO.roomID !== roomID) {
+                        if (!wss.APP_INFO.roomID || wss.APP_INFO.roomID !== roomID.toUpperCase()) {
 
                             ws.sendMessage({
                                 type,
                                 status: STATUS.FAIL,
                                 message: '房间不存在'
                             })
+                        } else if (ws.userInfo && ws.userInfo.uid) { // 用户已经加入，连接未中断
+
+                            ws.sendMessage({
+                                type,
+                                status: STATUS.SUCCESS,
+                            });
                         } else {
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
                             wss.broadcast({
@@ -136,7 +149,6 @@ module.exports = (server) => {
                                 status: STATUS.SUCCESS,
                             });
                         }
-                        console.log('JOIN triggered');
 
                         break;
                     case TYPE.LEAVE:
@@ -230,6 +242,9 @@ module.exports = (server) => {
                     default:
                         break;
                 }
+
+                console.log(type + ' triggered');
+
             } catch (err) {
                 const errMessage = {
                     type,
