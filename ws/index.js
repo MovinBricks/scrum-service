@@ -85,7 +85,7 @@ module.exports = (server) => {
                         if (wss.APP_INFO.master.userInfo
                             && wss.APP_INFO.master.userInfo.uid
                             && wss.APP_INFO.roomID
-                            && wss.AAP_INFO.roomID === roomID) {
+                            && wss.APP_INFO.roomID === roomID) {
                             ws.userInfo = Object.assign({}, userInfo, { uid: wss.APP_INFO.master.userInfo.uid });
                             wss.APP_INFO.master = ws;
 
@@ -221,12 +221,10 @@ module.exports = (server) => {
                             kickedUsers.forEach((user) => {
                                 user.terminate();
                             });
+                            
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
-                            });
-                            wss.broadcast({
-                                type,
                                 users: wss.APP_INFO.clients.map(item => {
                                     return {
                                         userInfo: item.userInfo
@@ -291,6 +289,8 @@ module.exports = (server) => {
                     errMessage: err.toString(),
                     errStack: err.stack,
                 }
+
+                console.log(errMessage);
 
                 ws.sendMessage(errMessage);
             }
