@@ -4,7 +4,7 @@ const uuidv4 = require('uuid/v4');
 const TYPE = require('../data/operationType');
 const STATUS = require('../data/operationStatus');
 const AppInfo = require('../data/applicationInfo');
-const { computeAverage } = require('../utils');
+const { computeAverage, generateRandom } = require('../utils');
 
 const noop = () => { };
 
@@ -101,7 +101,7 @@ module.exports = (server) => {
                                 }),
                             });
                         } else {
-                            const newRoomID = uuidv4().slice(0, 4).toUpperCase();
+                            const newRoomID = generateRandom(1000, 9999);
 
                             wss.APP_INFO.init();
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
@@ -123,7 +123,7 @@ module.exports = (server) => {
 
                         break;
                     case TYPE.JOIN:
-                        if (!wss.APP_INFO.roomID || wss.APP_INFO.roomID !== roomID.toUpperCase()) {
+                        if (!wss.APP_INFO.roomID || wss.APP_INFO.roomID !== roomID) {
 
                             ws.sendMessage({
                                 type,
@@ -221,7 +221,7 @@ module.exports = (server) => {
                             kickedUsers.forEach((user) => {
                                 user.terminate();
                             });
-                            
+
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
@@ -252,7 +252,7 @@ module.exports = (server) => {
                         break;
                     case TYPE.RESTART:
                         // 重置用户分数
-                        wss.APP_INFO.clients.forEach((client)=>{
+                        wss.APP_INFO.clients.forEach((client) => {
                             client.score = 0;
                         })
 
