@@ -94,6 +94,11 @@ module.exports = (server) => {
                                 userInfo: ws.userInfo,
                                 roomID: wss.APP_INFO.roomID,
                                 status: STATUS.SUCCESS,
+                                users: wss.APP_INFO.clients.map(item => {
+                                    return {
+                                        userInfo: item.userInfo
+                                    }
+                                }),
                             });
                         } else {
                             const newRoomID = uuidv4().slice(0, 4).toUpperCase();
@@ -108,6 +113,11 @@ module.exports = (server) => {
                                 userInfo: ws.userInfo,
                                 roomID: newRoomID,
                                 status: STATUS.SUCCESS,
+                                users: wss.APP_INFO.clients.map(item => {
+                                    return {
+                                        userInfo: item.userInfo
+                                    }
+                                }),
                             });
                         }
 
