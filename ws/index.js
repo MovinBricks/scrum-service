@@ -66,7 +66,7 @@ module.exports = (server) => {
 
         ws.on('message', function (data) {
             const message = JSON.parse(data);
-            const { userInfo = {}, type = '', roomID = '', score, kickedUID } = message;
+            const { userInfo = {}, type = '', roomID = '', score, kickedUids = [] } = message;
             console.log(`[SERVER] Received: ${data}`);
 
             if (!message) {
@@ -195,11 +195,14 @@ module.exports = (server) => {
                             break;
                         }
 
-                        const kickedUser = wss.APP_INFO.clients.find(client => client.userInfo.uid === kickedUID);
+                        const kickedUsers = wss.APP_INFO.clients.filter(client => kickedUids.includes(client.userInfo.uid));
 
-                        if (kickedUser) {
-                            wss.APP_INFO.clients = wss.APP_INFO.clients.filter(client => client.userInfo.uid !== userInfo.uid);
-                            kickedUser.terminate();
+                        if (kickedUsers.length) {
+                            wss.APP_INFO.clients = wss.APP_INFO.clients.filter(client => !kickedUids.includes(client.userInfo.uid));
+
+                            kickedUsers.forEach((user) => {
+                                user.terminate();
+                            });
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
@@ -216,7 +219,7 @@ module.exports = (server) => {
                             ws.sendMessage({
                                 type,
                                 status: STATUS.FAIL,
-                                message: '该用户不存在'
+                                message: '用户不存在'
                             });
                         }
 

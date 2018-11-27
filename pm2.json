@@ -1,0 +1,17 @@
+{
+    "apps": {
+        "name": "scrum-service",
+        "script": "./server.js",
+        "out_file": "/logs/scrum_service_out.log",
+        "error_file": "/logs/scrum_service_out.log",
+        "merge_logs": true,
+        "log_date_format": "YYYY-MM-DD HH:mm:ss",
+        "min_uptime": "60s",
+        "max_restarts": 30,
+        "autorestart": true,
+        "restart_delay": 60,
+        "env": {
+            "NODE_ENV": "production"
+        }
+    }
+}

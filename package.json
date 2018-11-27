@@ -4,6 +4,7 @@
   "description": "node service websocket",
   "main": "server.js",
   "scripts": {
+    "pm2": "pm2 start pm2.json",
     "dev": "node server.js",
     "start": "cross-env NODE_ENV=production node server.js"
   },
