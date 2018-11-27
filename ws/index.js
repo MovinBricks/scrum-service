@@ -4,6 +4,7 @@ const uuidv4 = require('uuid/v4');
 const TYPE = require('../data/operationType');
 const STATUS = require('../data/operationStatus');
 const AppInfo = require('../data/applicationInfo');
+const { computeAverage } = require('../utils');
 
 const noop = () => { };
 
@@ -225,8 +226,12 @@ module.exports = (server) => {
 
                         break;
                     case TYPE.SHOW:
+                        const scores = wss.APP_INFO.clients.map(item => +item.score)
+                            .filter(item => !isNaN(item));
+                        
                         wss.broadcast({
                             type,
+                            average: computeAverage(scores),
                             status: STATUS.SUCCESS,
                         });
                         break;
