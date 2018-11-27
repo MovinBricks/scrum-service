@@ -51,7 +51,9 @@ module.exports = (server) => {
 
         console.log('broadcast:', JSON.stringify(broadcastMsg));
 
-        wss.clients.forEach((item) => {
+        wss.APP_INFO.master && wss.APP_INFO.master.sendMessage && wss.APP_INFO.master.sendMessage(broadcastMsg);
+
+        wss.APP_INFO.clients.forEach((item) => {
             item.sendMessage(broadcastMsg);
         });
     }
