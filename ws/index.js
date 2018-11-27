@@ -81,9 +81,17 @@ module.exports = (server) => {
             try {
                 switch (type) {
                     case TYPE.CREATE:
-                        if (wss.APP_INFO.master && userInfo.uid && wss.APP_INFO.roomID) {
+                        // 重连状态
+                        if (wss.APP_INFO.master.userInfo
+                            && wss.APP_INFO.master.userInfo.uid
+                            && wss.APP_INFO.roomID
+                            && wss.AAP_INFO.roomID === roomID) {
+                            ws.userInfo = Object.assign({}, userInfo, { uid: wss.APP_INFO.master.userInfo.uid });
+                            wss.APP_INFO.master = ws;
+
                             ws.sendMessage({
                                 type,
+                                userInfo: ws.userInfo,
                                 roomID: wss.APP_INFO.roomID,
                                 status: STATUS.SUCCESS,
                             });
@@ -187,7 +195,7 @@ module.exports = (server) => {
                         break;
 
                     case TYPE.KICK:
-                        if (wss.APP_INFO.master.userInfo.uid !== userInfo.uid) {
+                        if (wss.APP_INFO.master.userInfo.uid !== ws.userInfo.uid) {
                             ws.sendMessage({
                                 type,
                                 status: STATUS.FAIL,
@@ -228,7 +236,7 @@ module.exports = (server) => {
                     case TYPE.SHOW:
                         const scores = wss.APP_INFO.clients.map(item => +item.score)
                             .filter(item => !isNaN(item));
-                        
+
                         wss.broadcast({
                             type,
                             average: computeAverage(scores),
