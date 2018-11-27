@@ -12,21 +12,6 @@ module.exports = (server) => {
         server,
     });
 
-    // const interval = setInterval(function ping() {
-    //     wss.clients.forEach((ws) => {
-    //         if (ws.isAlive === false) {
-    //             return ws.terminate();
-    //         }
-
-    //         ws.isAlive = false;
-    //         ws.ping(noop);
-    //     })
-    // });
-
-    // function heartbeat() {
-    //     this.isAlive = true;
-    // }
-
     /**
      * 发送消息
      *
@@ -66,8 +51,7 @@ module.exports = (server) => {
 
         console.log('broadcast:', JSON.stringify(broadcastMsg));
 
-        wss.APP_INFO.master &&  wss.APP_INFO.master.sendMessage && wss.APP_INFO.master.sendMessage(broadcastMsg);
-        wss.APP_INFO.clients.forEach((item) => {
+        wss.clients.forEach((item) => {
             item.sendMessage(broadcastMsg);
         });
     }
@@ -77,12 +61,6 @@ module.exports = (server) => {
         ws.sendMessage = sendMessage;
 
         console.log(`[SERVER] connection()`);
-        // const clientIp = req.headers['x-forwarded-for'].split(/\s*,\s*/)[0];
-        // ws.clientIp = clientIp;
-
-        // ws.isAlive = true;
-
-        // ws.on('pong', heartbeat);
 
         ws.on('message', function (data) {
             const message = JSON.parse(data);
@@ -116,7 +94,7 @@ module.exports = (server) => {
 
                             ws.sendMessage({
                                 type,
-                                userInfo:ws.userInfo,
+                                userInfo: ws.userInfo,
                                 roomID: newRoomID,
                                 status: STATUS.SUCCESS,
                             });
@@ -241,6 +219,12 @@ module.exports = (server) => {
                             status: STATUS.SUCCESS,
                         });
                         break;
+                    case TYPE.PONG:
+                        ws.sendMessage({
+                            type,
+                            status: STATUS.SUCCESS,
+                        });
+                        break;
                     default:
                         break;
                 }
@@ -264,12 +248,17 @@ module.exports = (server) => {
         });
 
         ws.on('close', function (data) {
-            wss.APP_INFO.clients = wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
-            wss.broadcast({
-                type:TYPE.CLOSE,
-                userInfo: ws.userInfo,
-                users: wss.APP_INFO.clients.map(item => item.userInfo),
-            })
+            try {
+                wss.APP_INFO.clients = wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
+                wss.broadcast({
+                    type: TYPE.CLOSE,
+                    userInfo: ws.userInfo,
+                    users: wss.APP_INFO.clients.map(item => item.userInfo),
+                })
+            } catch (e) {
+                console.log('[SERVER] error on close: ', e)
+            }
+
         });
     });
 }
