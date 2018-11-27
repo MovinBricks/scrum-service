@@ -65,7 +65,8 @@ module.exports = (server) => {
         const broadcastMsg = Object.assign({}, data, { isBroadcast: true });
 
         console.log('broadcast:', JSON.stringify(broadcastMsg));
-        wss.APP_INFO.master.sendMessage(broadcastMsg);
+
+        wss.APP_INFO.master &&  wss.APP_INFO.master.sendMessage && wss.APP_INFO.master.sendMessage(broadcastMsg);
         wss.APP_INFO.clients.forEach((item) => {
             item.sendMessage(broadcastMsg);
         });
@@ -86,7 +87,7 @@ module.exports = (server) => {
         ws.on('message', function (data) {
             const message = JSON.parse(data);
             const { userInfo = {}, type = '', roomID = '', score, kickedUID } = message;
-            console.log(`[SERVER] Received: ${JSON.parse(data)}`);
+            console.log(`[SERVER] Received: ${data}`);
 
             if (!message) {
                 ws.sendMessage({
@@ -99,7 +100,7 @@ module.exports = (server) => {
             try {
                 switch (type) {
                     case TYPE.CREATE:
-                        if (wss.APP_INFO.master && ws.userInfo.uid && wss.APP_INFO.roomID) {
+                        if (wss.APP_INFO.master && userInfo.uid && wss.APP_INFO.roomID) {
                             ws.sendMessage({
                                 type,
                                 roomID: wss.APP_INFO.roomID,
@@ -115,6 +116,7 @@ module.exports = (server) => {
 
                             ws.sendMessage({
                                 type,
+                                userInfo:ws.userInfo,
                                 roomID: newRoomID,
                                 status: STATUS.SUCCESS,
                             });
@@ -264,6 +266,7 @@ module.exports = (server) => {
         ws.on('close', function (data) {
             wss.APP_INFO.clients = wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
             wss.broadcast({
+                type:TYPE.CLOSE,
                 userInfo: ws.userInfo,
                 users: wss.APP_INFO.clients.map(item => item.userInfo),
             })

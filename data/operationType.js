@@ -6,5 +6,6 @@ module.exports = {
     KICK: 'KICK', // 踢人
     SHOW: 'SHOW', // 展示分数
     RESTART: 'RESTART', // 重置
+    CLOSE: 'CLOSE', // 连接关闭
     OTHER:'OTHER', // 其他
 }
