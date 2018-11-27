@@ -66,7 +66,7 @@ module.exports = (server) => {
         console.log(`[SERVER] connection()`);
 
         ws.on('message', function (data) {
-            const message = JSON.parse(data);
+            const message = JSON.parse(data) || {};
             const { userInfo = {}, type = '', roomID = '', score, kickedUids = [] } = message;
             console.log(`[SERVER] Received: ${data}`);
 
@@ -190,7 +190,6 @@ module.exports = (server) => {
                                         score: client.score,
                                         userInfo: client.userInfo,
                                     }
-
                                 }),
                                 type,
                             });
@@ -254,8 +253,19 @@ module.exports = (server) => {
                         });
                         break;
                     case TYPE.RESTART:
+                        // 重置用户分数
+                        wss.APP_INFO.clients.forEach((client)=>{
+                            client.score = 0;
+                        })
+
                         wss.broadcast({
                             type,
+                            users: wss.APP_INFO.clients.map(client => {
+                                return {
+                                    score: client.score,
+                                    userInfo: client.userInfo,
+                                }
+                            }),
                             status: STATUS.SUCCESS,
                         });
                         break;
