@@ -178,7 +178,7 @@ module.exports = (server) => {
 
                         break;
                     case TYPE.GRADE:
-                        if (score && score > 0) {
+                        if (!isNaN(+score) || score === '?') {
                             ws.score = score;
                             ws.sendMessage({
                                 type,
