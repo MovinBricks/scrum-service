@@ -242,7 +242,7 @@ module.exports = (server) => {
                         break;
                     case TYPE.SHOW:
                         const scores = wss.APP_INFO.clients.map(item => +item.score)
-                            .filter(item => !isNaN(item));
+                            .filter(item => !isNaN(item) || item === 0);
 
                         wss.broadcast({
                             type,
