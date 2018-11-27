@@ -122,7 +122,11 @@ module.exports = (server) => {
                             wss.broadcast({
                                 type: 'JOIN_USER',
                                 userInfo: ws.userInfo,
-                                users: [...wss.APP_INFO.clients.map(item => item.userInfo), ws.userInfo],
+                                users: [...wss.APP_INFO.clients.map(item => {
+                                    return {
+                                        userInfo: item.userInfo
+                                    }
+                                }), { userInfo: ws.userInfo }],
                             });
                             wss.APP_INFO.clients.push(ws);
 
@@ -145,7 +149,11 @@ module.exports = (server) => {
                             wss.broadcast({
                                 type,
                                 userInfo: ws.userInfo,
-                                users: wss.APP_INFO.clients.map(item => item.userInfo),
+                                users: wss.APP_INFO.clients.map(item => {
+                                    return {
+                                        userInfo: item.userInfo
+                                    }
+                                }),
                             });
                         }
 
@@ -198,7 +206,11 @@ module.exports = (server) => {
                             });
                             wss.broadcast({
                                 type,
-                                users: wss.APP_INFO.clients.map(item => item.userInfo),
+                                users: wss.APP_INFO.clients.map(item => {
+                                    return {
+                                        userInfo: item.userInfo
+                                    }
+                                }),
                             });
                         } else {
                             ws.sendMessage({
@@ -255,7 +267,11 @@ module.exports = (server) => {
                 wss.broadcast({
                     type: TYPE.CLOSE,
                     userInfo: ws.userInfo,
-                    users: wss.APP_INFO.clients.map(item => item.userInfo),
+                    users: wss.APP_INFO.clients.map(item => {
+                        return {
+                            userInfo: item.userInfo
+                        }
+                    }),
                 })
             } catch (e) {
                 console.log('[SERVER] error on close: ', e)
