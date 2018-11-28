@@ -85,7 +85,7 @@ module.exports = (server) => {
                         if (wss.APP_INFO.master.userInfo
                             && wss.APP_INFO.master.userInfo.uid
                             && wss.APP_INFO.roomID
-                            && wss.APP_INFO.roomID === roomID) {
+                            && wss.APP_INFO.roomID === Number(roomID)) {
                             ws.userInfo = Object.assign({}, userInfo, { uid: wss.APP_INFO.master.userInfo.uid });
                             wss.APP_INFO.master = ws;
 
