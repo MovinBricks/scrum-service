@@ -85,7 +85,7 @@ module.exports = (server) => {
                         if (wss.APP_INFO.master.userInfo
                             && wss.APP_INFO.master.userInfo.uid
                             && wss.APP_INFO.roomID
-                            && wss.APP_INFO.roomID === Number(roomID)) {
+                            && wss.APP_INFO.roomID === roomID) {
                             ws.userInfo = Object.assign({}, userInfo, { uid: wss.APP_INFO.master.userInfo.uid });
                             wss.APP_INFO.master = ws;
 
@@ -101,7 +101,7 @@ module.exports = (server) => {
                                 }),
                             });
                         } else {
-                            const newRoomID = generateRandom(1000, 9999);
+                            const newRoomID = generateRandom(1000, 9999) + '';
 
                             wss.APP_INFO.init();
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
