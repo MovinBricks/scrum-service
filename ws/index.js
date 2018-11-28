@@ -59,6 +59,20 @@ module.exports = (server) => {
         });
     }
 
+    wss.initRoom = () => {
+        const { APP_INFO = {} } = this;
+
+        if (APP_INFO.master && APP_INFO.master.userInfo && APP_INFO.master.userInfo.uid) {
+            APP_INFO.master.terminate();
+        }
+
+        if (APP_INFO.clients && APP_INFO.clients.length > 0) {
+            APP_INFO.clients.forEach(client => {
+                client.terminate();
+            });
+        }
+    }
+
 
     wss.on('connection', function (ws, req) {
         ws.sendMessage = sendMessage;
@@ -103,6 +117,7 @@ module.exports = (server) => {
                         } else {
                             const newRoomID = generateRandom(1000, 9999) + '';
 
+                            wss.initRoom();
                             wss.APP_INFO.init();
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
                             wss.APP_INFO.master = ws;
