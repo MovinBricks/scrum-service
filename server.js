@@ -1,11 +1,15 @@
-const path = require('path');
 const Koa = require('koa');
 const bodyParser = require('koa-bodyparser');
 
 const ws = require('./ws');
 const router = require('./router');
 
-const resolve = file => path.resolve(__dirname, file);
+const isProd = process.env.NODE_ENV === 'production';
+// 生产模式下关闭log
+if (isProd) {
+    console.log = () => { };
+    console.warn = () => { };
+}
 
 const app = new Koa();
 const port = 9000;

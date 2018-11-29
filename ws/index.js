@@ -44,6 +44,14 @@ module.exports = (server) => {
         }
     }
 
+    /**
+     * 心跳连接
+     *
+     */
+    function heartbeat() {
+        this.isAlive = true;
+    }
+
     wss.APP_INFO = new AppInfo();
 
 
@@ -59,7 +67,7 @@ module.exports = (server) => {
         });
     }
 
-    wss.initRoom = () => {
+    wss.initRoom = function initRoom() {
         const { APP_INFO = {} } = this;
 
         if (APP_INFO.master && APP_INFO.master.userInfo && APP_INFO.master.userInfo.uid) {
@@ -75,6 +83,7 @@ module.exports = (server) => {
 
 
     wss.on('connection', function (ws, req) {
+        ws.isAlive = true;
         ws.sendMessage = sendMessage;
 
         console.log(`[SERVER] connection()`);
@@ -152,15 +161,20 @@ module.exports = (server) => {
                                 status: STATUS.SUCCESS,
                             });
                         } else {
+                            ws.score = 0;
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
                             wss.broadcast({
                                 type: 'JOIN_USER',
                                 userInfo: ws.userInfo,
                                 users: [...wss.APP_INFO.clients.map(item => {
                                     return {
+                                        score: item.score,
                                         userInfo: item.userInfo
                                     }
-                                }), { userInfo: ws.userInfo }],
+                                }), {
+                                    score: ws.score,
+                                    userInfo: ws.userInfo
+                                }],
                             });
                             wss.APP_INFO.clients.push(ws);
 
@@ -185,6 +199,7 @@ module.exports = (server) => {
                                 userInfo: ws.userInfo,
                                 users: wss.APP_INFO.clients.map(item => {
                                     return {
+                                        score: item.score,
                                         userInfo: item.userInfo
                                     }
                                 }),
@@ -242,6 +257,7 @@ module.exports = (server) => {
                                 status: STATUS.SUCCESS,
                                 users: wss.APP_INFO.clients.map(item => {
                                     return {
+                                        score: item.score,
                                         userInfo: item.userInfo
                                     }
                                 }),
@@ -282,12 +298,6 @@ module.exports = (server) => {
                             status: STATUS.SUCCESS,
                         });
                         break;
-                    case TYPE.PONG:
-                        ws.sendMessage({
-                            type,
-                            status: STATUS.SUCCESS,
-                        });
-                        break;
                     default:
                         break;
                 }
@@ -312,6 +322,8 @@ module.exports = (server) => {
 
         });
 
+        ws.on('pong', heartbeat);
+
         ws.on('close', function (data) {
             try {
                 wss.APP_INFO.clients = wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
@@ -320,7 +332,8 @@ module.exports = (server) => {
                     userInfo: ws.userInfo,
                     users: wss.APP_INFO.clients.map(item => {
                         return {
-                            userInfo: item.userInfo
+                            score: item.score,
+                            userInfo: item.userInfo,
                         }
                     }),
                 })
@@ -329,5 +342,22 @@ module.exports = (server) => {
             }
 
         });
+    });
+
+    const interval = setInterval(function ping() {
+        wss.clients.forEach((ws) => {
+            if (ws.isAlive === false) return ws.terminate();
+
+            ws.isAlive = false;
+            ws.ping(noop);
+        })
+    }, 60000);
+
+    wss.on('error', () => {
+        clearInterval(interval);
+    });
+
+    wss.on('close', () => {
+        clearInterval(interval);
     });
 }

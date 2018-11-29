@@ -3,7 +3,7 @@
         "name": "scrum-service",
         "script": "./server.js",
         "out_file": "/logs/scrum_service_out.log",
-        "error_file": "/logs/scrum_service_out.log",
+        "error_file": "/logs/scrum_service_error.log",
         "merge_logs": true,
         "log_date_format": "YYYY-MM-DD HH:mm:ss",
         "min_uptime": "60s",
