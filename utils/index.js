@@ -35,7 +35,7 @@ module.exports = {
      */
     generateRoomID(roomIDs = []) {
         for (let i = 1000; i < 10000; i++) {
-            if (!roomIDs.includes(i)) {
+            if (!roomIDs.includes(i + '')) {
                 return i + '';
             }
         }

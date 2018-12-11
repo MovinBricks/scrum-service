@@ -112,12 +112,13 @@ module.exports = (server) => {
             try {
                 switch (type) {
                     case TYPE.CREATE:
-                        room = wss.APP_INFO.rooms.length > 0 ? wss.APP_INFO.rooms.find(item.roomID === roomID) : undefined;
+                        
+                    room = wss.APP_INFO.rooms.length > 0 ? wss.APP_INFO.rooms.find((item)=>item.roomID === roomID) : undefined;
 
                         // 重连状态
                         if (room && room.master.userInfo && room.master.userInfo) {
                             ws.userInfo = Object.assign({}, userInfo, { uid: room.master.userInfo.uid });
-                            ws.room.roomID;
+                            ws.roomID = room.roomID;
                             room.master = ws;
 
                             ws.sendMessage({
