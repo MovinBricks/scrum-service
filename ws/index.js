@@ -4,7 +4,8 @@ const uuidv4 = require('uuid/v4');
 const TYPE = require('../data/operationType');
 const STATUS = require('../data/operationStatus');
 const AppInfo = require('../data/applicationInfo');
-const { computeAverage, generateRandom } = require('../utils');
+const Room = require('../data/room');
+const { computeAverage, generateRoomID } = require('../utils');
 
 const noop = () => { };
 
@@ -55,29 +56,35 @@ module.exports = (server) => {
     wss.APP_INFO = new AppInfo();
 
 
-    wss.broadcast = (data) => {
+    wss.broadcast = (data, roomID = 0) => {
         const broadcastMsg = Object.assign({}, data, { isBroadcast: true });
+        const room = wss.APP_INFO.rooms.find((item) => item.roomID === roomID);
 
         console.log('broadcast:', JSON.stringify(broadcastMsg));
 
-        wss.APP_INFO.master && wss.APP_INFO.master.sendMessage && wss.APP_INFO.master.sendMessage(broadcastMsg);
+        if (room) {
+            room.master && room.master.sendMessage && room.master.sendMessage(broadcastMsg);
 
-        wss.APP_INFO.clients.forEach((item) => {
-            item.sendMessage(broadcastMsg);
-        });
+            room.clients.forEach((item) => {
+                item.sendMessage(broadcastMsg);
+            });
+        }
     }
 
-    wss.initRoom = function initRoom() {
+    wss.initRoom = function initRoom(roomID = 0) {
         const { APP_INFO = {} } = this;
+        const room = APP_INFO.rooms.find((item) => item.roomID === roomID);
 
-        if (APP_INFO.master && APP_INFO.master.userInfo && APP_INFO.master.userInfo.uid) {
-            APP_INFO.master.terminate();
-        }
+        if (room) {
+            if (room.master && room.master.userInfo && room.master.userInfo.uid) {
+                room.master.terminate();
+            }
 
-        if (APP_INFO.clients && APP_INFO.clients.length > 0) {
-            APP_INFO.clients.forEach(client => {
-                client.terminate();
-            });
+            if (room.clients && room.clients.length > 0) {
+                room.clients.forEach(client => {
+                    client.terminate();
+                });
+            }
         }
     }
 
@@ -91,6 +98,7 @@ module.exports = (server) => {
         ws.on('message', function (data) {
             const message = JSON.parse(data) || {};
             const { userInfo = {}, type = '', roomID = '', score, kickedUids = [] } = message;
+            let room;
             console.log(`[SERVER] Received: ${data}`);
 
             if (!message) {
@@ -104,40 +112,44 @@ module.exports = (server) => {
             try {
                 switch (type) {
                     case TYPE.CREATE:
+                        room = wss.APP_INFO.rooms.length > 0 ? wss.APP_INFO.rooms.find(item.roomID === roomID) : undefined;
+
                         // 重连状态
-                        if (wss.APP_INFO.master.userInfo
-                            && wss.APP_INFO.master.userInfo.uid
-                            && wss.APP_INFO.roomID
-                            && wss.APP_INFO.roomID === roomID) {
-                            ws.userInfo = Object.assign({}, userInfo, { uid: wss.APP_INFO.master.userInfo.uid });
-                            wss.APP_INFO.master = ws;
+                        if (room && room.master.userInfo && room.master.userInfo) {
+                            ws.userInfo = Object.assign({}, userInfo, { uid: room.master.userInfo.uid });
+                            ws.room.roomID;
+                            room.master = ws;
 
                             ws.sendMessage({
                                 type,
                                 userInfo: ws.userInfo,
-                                roomID: wss.APP_INFO.roomID,
+                                roomID: room.roomID,
                                 status: STATUS.SUCCESS,
-                                users: wss.APP_INFO.clients.map(item => {
+                                users: room.clients.map(item => {
                                     return {
                                         userInfo: item.userInfo
                                     }
                                 }),
                             });
                         } else {
-                            const newRoomID = generateRandom(1000, 9999) + '';
+                            const roomIDs = wss.APP_INFO.rooms.map(room => room.roomID);
+                            const newRoomID = generateRoomID(roomIDs);
+                            let newRoom = new Room();
 
-                            wss.initRoom();
-                            wss.APP_INFO.init();
+                            newRoom.roomID = newRoomID;
+                            // wss.initRoom();
+                            // wss.APP_INFO.init();
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
-                            wss.APP_INFO.master = ws;
-                            wss.APP_INFO.roomID = newRoomID;
+                            ws.roomID = newRoomID;
+                            newRoom.master = ws;
+                            wss.APP_INFO.rooms.push(newRoom);
 
                             ws.sendMessage({
                                 type,
                                 userInfo: ws.userInfo,
                                 roomID: newRoomID,
                                 status: STATUS.SUCCESS,
-                                users: wss.APP_INFO.clients.map(item => {
+                                users: newRoom.clients.map(item => {
                                     return {
                                         userInfo: item.userInfo
                                     }
@@ -147,7 +159,9 @@ module.exports = (server) => {
 
                         break;
                     case TYPE.JOIN:
-                        if (!wss.APP_INFO.roomID || wss.APP_INFO.roomID !== roomID) {
+                        room = wss.APP_INFO.rooms.find(item => item.roomID === roomID);
+
+                        if (!room) {
 
                             ws.sendMessage({
                                 type,
@@ -162,11 +176,12 @@ module.exports = (server) => {
                             });
                         } else {
                             ws.score = 0;
+                            ws.roomID = roomID;
                             ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
                             wss.broadcast({
                                 type: 'JOIN_USER',
                                 userInfo: ws.userInfo,
-                                users: [...wss.APP_INFO.clients.map(item => {
+                                users: [...room.clients.map(item => {
                                     return {
                                         score: item.score,
                                         userInfo: item.userInfo
@@ -175,8 +190,8 @@ module.exports = (server) => {
                                     score: ws.score,
                                     userInfo: ws.userInfo
                                 }],
-                            });
-                            wss.APP_INFO.clients.push(ws);
+                            }, roomID);
+                            room.clients.push(ws);
 
                             ws.sendMessage({
                                 type,
@@ -186,8 +201,10 @@ module.exports = (server) => {
 
                         break;
                     case TYPE.LEAVE:
-                        if (wss.APP_INFO.roomID && wss.APP_INFO.roomID === roomID) {
-                            wss.APP_INFO.clients = wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
+                        room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
+
+                        if (room) {
+                            room.clients = room.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
@@ -197,17 +214,19 @@ module.exports = (server) => {
                             wss.broadcast({
                                 type,
                                 userInfo: ws.userInfo,
-                                users: wss.APP_INFO.clients.map(item => {
+                                users: room.clients.map(item => {
                                     return {
                                         score: item.score,
                                         userInfo: item.userInfo
                                     }
                                 }),
-                            });
+                            }, ws.roomID);
                         }
 
                         break;
                     case TYPE.GRADE:
+                        room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
+
                         if (!isNaN(+score) || score === '?') {
                             ws.score = score;
                             ws.sendMessage({
@@ -215,14 +234,14 @@ module.exports = (server) => {
                                 status: STATUS.SUCCESS,
                             })
                             wss.broadcast({
-                                users: wss.APP_INFO.clients.map(client => {
+                                users: room.clients.map(client => {
                                     return {
                                         score: client.score,
                                         userInfo: client.userInfo,
                                     }
                                 }),
                                 type,
-                            });
+                            }, room.roomID);
                         } else {
                             ws.send(JSON.stringify({
                                 type,
@@ -234,7 +253,9 @@ module.exports = (server) => {
                         break;
 
                     case TYPE.KICK:
-                        if (wss.APP_INFO.master.userInfo.uid !== ws.userInfo.uid) {
+                        room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
+
+                        if (room.master.userInfo.uid !== ws.userInfo.uid) {
                             ws.sendMessage({
                                 type,
                                 status: STATUS.FAIL,
@@ -243,10 +264,10 @@ module.exports = (server) => {
                             break;
                         }
 
-                        const kickedUsers = wss.APP_INFO.clients.filter(client => kickedUids.includes(client.userInfo.uid));
+                        const kickedUsers = room.clients.filter(client => kickedUids.includes(client.userInfo.uid));
 
                         if (kickedUsers.length) {
-                            wss.APP_INFO.clients = wss.APP_INFO.clients.filter(client => !kickedUids.includes(client.userInfo.uid));
+                            room.clients = room.clients.filter(client => !kickedUids.includes(client.userInfo.uid));
 
                             kickedUsers.forEach((user) => {
                                 user.terminate();
@@ -255,7 +276,7 @@ module.exports = (server) => {
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
-                                users: wss.APP_INFO.clients.map(item => {
+                                users: room.clients.map(item => {
                                     return {
                                         score: item.score,
                                         userInfo: item.userInfo
@@ -272,31 +293,40 @@ module.exports = (server) => {
 
                         break;
                     case TYPE.SHOW:
-                        const scores = wss.APP_INFO.clients.map(item => +item.score)
-                            .filter(item => !isNaN(item) || item === 0);
+                        room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
+                        if (room) {
+                            const scores = room.clients.map(item => +item.score)
+                                .filter(item => !isNaN(item) || item === 0);
 
-                        wss.broadcast({
-                            type,
-                            average: computeAverage(scores),
-                            status: STATUS.SUCCESS,
-                        });
+                            wss.broadcast({
+                                type,
+                                average: computeAverage(scores),
+                                status: STATUS.SUCCESS,
+                            }, room.roomID);
+                        }
+
                         break;
                     case TYPE.RESTART:
-                        // 重置用户分数
-                        wss.APP_INFO.clients.forEach((client) => {
-                            client.score = 0;
-                        })
+                        room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
 
-                        wss.broadcast({
-                            type,
-                            users: wss.APP_INFO.clients.map(client => {
-                                return {
-                                    score: client.score,
-                                    userInfo: client.userInfo,
-                                }
-                            }),
-                            status: STATUS.SUCCESS,
-                        });
+                        if (room) {
+                            // 重置用户分数
+                            room.clients.forEach((client) => {
+                                client.score = 0;
+                            })
+
+                            wss.broadcast({
+                                type,
+                                users: room.clients.map(client => {
+                                    return {
+                                        score: client.score,
+                                        userInfo: client.userInfo,
+                                    }
+                                }),
+                                status: STATUS.SUCCESS,
+                            }, room.roomID);
+                        }
+
                         break;
                     default:
                         break;
@@ -326,17 +356,22 @@ module.exports = (server) => {
 
         ws.on('close', function (data) {
             try {
-                wss.APP_INFO.clients = wss.APP_INFO.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
-                wss.broadcast({
-                    type: TYPE.CLOSE,
-                    userInfo: ws.userInfo,
-                    users: wss.APP_INFO.clients.map(item => {
-                        return {
-                            score: item.score,
-                            userInfo: item.userInfo,
-                        }
-                    }),
-                })
+                const room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
+
+                if (room) {
+                    room.clients = room.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
+
+                    wss.broadcast({
+                        type: TYPE.CLOSE,
+                        userInfo: ws.userInfo,
+                        users: room.clients.map(item => {
+                            return {
+                                score: item.score,
+                                userInfo: item.userInfo,
+                            }
+                        }),
+                    })
+                }
             } catch (e) {
                 console.log('[SERVER] error on close: ', e)
             }
@@ -345,12 +380,23 @@ module.exports = (server) => {
     });
 
     const interval = setInterval(function ping() {
-        wss.clients.forEach((ws) => {
-            if (ws.isAlive === false) return ws.terminate();
 
-            ws.isAlive = false;
-            ws.ping(noop);
-        })
+        wss.APP_INFO.rooms.forEach((room) => {
+            if (room.master.isAlive === false) {
+                room.master.terminate();
+            } else {
+                room.master.isAlive = false;
+                room.master.ping(noop);
+            }
+
+            room.clients.forEach((ws) => {
+                if (ws.isAlive === false) return ws.terminate();
+
+                ws.isAlive = false;
+                ws.ping(noop);
+            })
+
+        });
     }, 60000);
 
     wss.on('error', () => {

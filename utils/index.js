@@ -26,14 +26,18 @@ module.exports = {
 
         return avg;
     },
+
     /**
-     * 生成随机数
+     * 生成房间号
      *
-     * @param {*} min 最小值
-     * @param {*} max 最大值
-     * @returns 随机数
+     * @param {*} roomIDs
+     * @returns 房间号
      */
-    generateRandom(min, max) {
-        return Math.floor(Math.random() * (max - min)) + min;
+    generateRoomID(roomIDs = []) {
+        for (let i = 1000; i < 10000; i++) {
+            if (!roomIDs.includes(i)) {
+                return i + '';
+            }
+        }
     },
 }
