@@ -112,8 +112,8 @@ module.exports = (server) => {
             try {
                 switch (type) {
                     case TYPE.CREATE:
-                        
-                    room = wss.APP_INFO.rooms.length > 0 ? wss.APP_INFO.rooms.find((item)=>item.roomID === roomID) : undefined;
+
+                        room = wss.APP_INFO.rooms.length > 0 ? wss.APP_INFO.rooms.find((item) => item.roomID === roomID) : undefined;
 
                         // 重连状态
                         if (room && room.master.userInfo && room.master.userInfo) {
@@ -227,8 +227,20 @@ module.exports = (server) => {
                         break;
                     case TYPE.GRADE:
                         room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
+                        if (!room) {
 
-                        if (!isNaN(+score) || score === '?') {
+                            ws.sendMessage({
+                                type,
+                                status: STATUS.FAIL,
+                                message: '房间不存在'
+                            })
+                        } else if (!ws.userInfo || !ws.userInfo.uid) {
+                            ws.sendMessage({
+                                type,
+                                status: STATUS.FAIL,
+                                message: '用户不存在'
+                            })
+                        } else if (!isNaN(+score) || score === '?') {
                             ws.score = score;
                             ws.sendMessage({
                                 type,
