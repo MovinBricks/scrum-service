@@ -3,14 +3,14 @@ class Room {
         this.clients = [];
         this.master = {};
         this.roomID = '';
-        this.cachedClients = new Map();
+        this.cachedClients = [];
     }
 
     init() {
         this.clients = [];
         this.master = {};
         this.roomID = '';
-        this.cachedClients = new Map();
+        this.cachedClients = [];
     }
 }
 
