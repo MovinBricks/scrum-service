@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const uuidv4 = require('uuid/v4');
 
 const TYPE = require('../data/operationType');
+const CLIENTSTATUS = require('../data/clientStatus');
 const STATUS = require('../data/operationStatus');
 const AppInfo = require('../data/applicationInfo');
 const Room = require('../data/room');
@@ -151,7 +152,9 @@ module.exports = (server) => {
                                 roomID: newRoomID,
                                 status: STATUS.SUCCESS,
                                 users: newRoom.clients.map(item => {
+                                    const { avatarUrl = '' } = item.userInfo;
                                     return {
+                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         userInfo: item.userInfo
                                     }
                                 }),
@@ -176,18 +179,29 @@ module.exports = (server) => {
                                 status: STATUS.SUCCESS,
                             });
                         } else {
+                            const { avatarUrl = '' } = userInfo;
+
                             ws.score = 0;
                             ws.roomID = roomID;
-                            ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
+                            if (room.cachedClients.has(avatarUrl)) {
+                                ws.userInfo = room.cachedClients.get(avatarUrl);
+                            } else {
+                                ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
+                                room.cachedClients.set(avatarUrl, ws.userInfo);
+                            }
+
                             wss.broadcast({
                                 type: 'JOIN_USER',
                                 userInfo: ws.userInfo,
                                 users: [...room.clients.map(item => {
+                                    const { avatarUrl = '' } = item.userInfo;
                                     return {
+                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: item.score,
                                         userInfo: item.userInfo
                                     }
                                 }), {
+                                    status: CLIENTSTATUS.ONLINE,
                                     score: ws.score,
                                     userInfo: ws.userInfo
                                 }],
@@ -216,7 +230,9 @@ module.exports = (server) => {
                                 type,
                                 userInfo: ws.userInfo,
                                 users: room.clients.map(item => {
+                                    const { avatarUrl = '' } = item.userInfo;
                                     return {
+                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: item.score,
                                         userInfo: item.userInfo
                                     }
@@ -248,7 +264,9 @@ module.exports = (server) => {
                             })
                             wss.broadcast({
                                 users: room.clients.map(client => {
+                                    const { avatarUrl = '' } = client.userInfo;
                                     return {
+                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: client.score,
                                         userInfo: client.userInfo,
                                     }
@@ -284,13 +302,16 @@ module.exports = (server) => {
 
                             kickedUsers.forEach((user) => {
                                 user.terminate();
+                                room.cachedClients.delete(user.userInfo.avatarUrl);
                             });
 
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
                                 users: room.clients.map(item => {
+                                    const { avatarUrl = '' } = item.userInfo;
                                     return {
+                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: item.score,
                                         userInfo: item.userInfo
                                     }
@@ -331,7 +352,9 @@ module.exports = (server) => {
                             wss.broadcast({
                                 type,
                                 users: room.clients.map(client => {
+                                    const { avatarUrl = '' } = client.userInfo;
                                     return {
+                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: client.score,
                                         userInfo: client.userInfo,
                                     }
@@ -378,7 +401,9 @@ module.exports = (server) => {
                         type: TYPE.CLOSE,
                         userInfo: ws.userInfo,
                         users: room.clients.map(item => {
+                            const { avatarUrl = '' } = item.userInfo;
                             return {
+                                status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                 score: item.score,
                                 userInfo: item.userInfo,
                             }
