@@ -86,6 +86,7 @@ module.exports = (server) => {
                     client.terminate();
                 });
             }
+            room.cachedClients.clear();
         }
     }
 
@@ -146,15 +147,20 @@ module.exports = (server) => {
                             newRoom.master = ws;
                             wss.APP_INFO.rooms.push(newRoom);
 
+                            const allClients = Array.from(newRoom.cachedClients.values());
+                            const avatarUrls = newRoom.clients.map(item => {
+                                const { avatarUrl = '' } = item.userInfo;
+                                return avatarUrl;
+                            });
                             ws.sendMessage({
                                 type,
                                 userInfo: ws.userInfo,
                                 roomID: newRoomID,
                                 status: STATUS.SUCCESS,
-                                users: newRoom.clients.map(item => {
+                                users: allClients.map(item => {
                                     const { avatarUrl = '' } = item.userInfo;
                                     return {
-                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
+                                        status: avatarUrls.includes(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         userInfo: item.userInfo
                                     }
                                 }),
@@ -195,13 +201,19 @@ module.exports = (server) => {
                                 room.cachedClients.set(avatarUrl, ws.userInfo);
                             }
 
+                            const allClients = Array.from(room.cachedClients.values());
+                            const avatarUrls = room.clients.map(item => {
+                                const { avatarUrl = '' } = item.userInfo;
+                                return avatarUrl;
+                            });
+
                             wss.broadcast({
                                 type: 'JOIN_USER',
                                 userInfo: ws.userInfo,
-                                users: [...room.clients.map(item => {
+                                users: [...allClients.map(item => {
                                     const { avatarUrl = '' } = item.userInfo;
                                     return {
-                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
+                                        status: avatarUrls.includes(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: item.score,
                                         userInfo: item.userInfo
                                     }
@@ -231,13 +243,19 @@ module.exports = (server) => {
                             });
                             ws.terminate();
 
+                            const allClients = Array.from(room.cachedClients.values());
+                            const avatarUrls = room.clients.map(item => {
+                                const { avatarUrl = '' } = item.userInfo;
+                                return avatarUrl;
+                            });
+
                             wss.broadcast({
                                 type,
                                 userInfo: ws.userInfo,
-                                users: room.clients.map(item => {
+                                users: allClients.map(item => {
                                     const { avatarUrl = '' } = item.userInfo;
                                     return {
-                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
+                                        status: avatarUrls.includes(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: item.score,
                                         userInfo: item.userInfo
                                     }
@@ -267,11 +285,18 @@ module.exports = (server) => {
                                 type,
                                 status: STATUS.SUCCESS,
                             })
+
+                            const allClients = Array.from(room.cachedClients.values());
+                            const avatarUrls = room.clients.map(item => {
+                                const { avatarUrl = '' } = item.userInfo;
+                                return avatarUrl;
+                            });
+
                             wss.broadcast({
-                                users: room.clients.map(client => {
+                                users: allClients.map(client => {
                                     const { avatarUrl = '' } = client.userInfo;
                                     return {
-                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
+                                        status: avatarUrls.includes(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: client.score,
                                         userInfo: client.userInfo,
                                     }
@@ -310,13 +335,19 @@ module.exports = (server) => {
                                 room.cachedClients.delete(user.userInfo.avatarUrl);
                             });
 
+                            const allClients = Array.from(room.cachedClients.values());
+                            const avatarUrls = room.clients.map(item => {
+                                const { avatarUrl = '' } = item.userInfo;
+                                return avatarUrl;
+                            });
+
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
-                                users: room.clients.map(item => {
+                                users: allClients.map(item => {
                                     const { avatarUrl = '' } = item.userInfo;
                                     return {
-                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
+                                        status: avatarUrls.includes(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: item.score,
                                         userInfo: item.userInfo
                                     }
@@ -354,12 +385,18 @@ module.exports = (server) => {
                                 client.score = 0;
                             })
 
+                            const allClients = Array.from(room.cachedClients.values());
+                            const avatarUrls = room.clients.map(item => {
+                                const { avatarUrl = '' } = item.userInfo;
+                                return avatarUrl;
+                            });
+
                             wss.broadcast({
                                 type,
-                                users: room.clients.map(client => {
+                                users: allClients.map(client => {
                                     const { avatarUrl = '' } = client.userInfo;
                                     return {
-                                        status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
+                                        status: avatarUrls.includes(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                         score: client.score,
                                         userInfo: client.userInfo,
                                     }
@@ -402,13 +439,19 @@ module.exports = (server) => {
                 if (room) {
                     room.clients = room.clients.filter((item) => item.userInfo.uid !== ws.userInfo.uid);
 
+                    const allClients = Array.from(room.cachedClients.values());
+                    const avatarUrls = room.clients.map(item => {
+                        const { avatarUrl = '' } = item.userInfo;
+                        return avatarUrl;
+                    });
+
                     wss.broadcast({
                         type: TYPE.CLOSE,
                         userInfo: ws.userInfo,
-                        users: room.clients.map(item => {
+                        users: allClients.map(item => {
                             const { avatarUrl = '' } = item.userInfo;
                             return {
-                                status: room.cachedClients.has(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
+                                status: avatarUrls.includes(avatarUrl) ? CLIENTSTATUS.ONLINE : CLIENTSTATUS.OFFLINE,
                                 score: item.score,
                                 userInfo: item.userInfo,
                             }
