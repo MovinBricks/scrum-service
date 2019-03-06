@@ -209,10 +209,11 @@ module.exports = server => {
 
                             if (oldClient) {
                                 ws.userInfo = oldClient.userInfo;
+                                room.cachedClients = room.cachedClients.filter(item=>item.userInfo.avatarUrl !== avatarUrl)
                             } else {
                                 ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
-                                room.cachedClients.push(ws);
                             }
+                            room.cachedClients.push(ws);
 
                             const avatarUrls = room.clients.map(item => {
                                 const { avatarUrl = '' } = item.userInfo;
@@ -419,12 +420,11 @@ module.exports = server => {
                         room = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
 
                         if (room) {
+                            const allClients = room.cachedClients;
                             // 重置用户分数
-                            room.clients.forEach(client => {
+                            allClients.forEach(client => {
                                 client.score = 0;
                             });
-
-                            const allClients = room.cachedClients;
                             const avatarUrls = room.clients.map(item => {
                                 const { avatarUrl = '' } = item.userInfo;
                                 return avatarUrl;
