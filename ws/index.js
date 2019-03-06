@@ -172,13 +172,18 @@ module.exports = (server) => {
                                 status: STATUS.FAIL,
                                 message: '房间不存在'
                             })
-                        } else if (ws.userInfo && ws.userInfo.uid) { // 用户已经加入，连接未中断
-
+                        } else if (ws.userInfo && ws.userInfo.uid && ws.roomID === roomID) { // 用户已经加入，连接未中断
                             ws.sendMessage({
                                 type,
                                 status: STATUS.SUCCESS,
                             });
                         } else {
+                            if (ws.userInfo && ws.userInfo.uid && ws.roomID !== roomID) {
+                                const preRoom = wss.APP_INFO.rooms.find(item => item.roomID === ws.roomID);
+                                const { avatarUrl = '' } = ws.userInfo;
+                                preRoom.clients = preRoom.clients.filter(client => client.userInfo.uid !== ws.userInfo.uid);
+                                preRoom.cachedClients.delete(avatarUrl);
+                            }
                             const { avatarUrl = '' } = userInfo;
 
                             ws.score = 0;
