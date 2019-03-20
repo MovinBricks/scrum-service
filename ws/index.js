@@ -209,7 +209,7 @@ module.exports = server => {
 
                             if (oldClient) {
                                 ws.userInfo = oldClient.userInfo;
-                                room.cachedClients = room.cachedClients.filter(item=>item.userInfo.avatarUrl !== avatarUrl)
+                                room.cachedClients = room.cachedClients.filter(item => item.userInfo.avatarUrl !== avatarUrl)
                             } else {
                                 ws.userInfo = Object.assign({}, userInfo, { uid: uuidv4() });
                             }
@@ -355,7 +355,9 @@ module.exports = server => {
                             break;
                         }
 
-                        const kickedUsers = room.clients.filter(client =>
+                        let allClients = room.cachedClients;
+
+                        const kickedUsers = allClients.filter(client =>
                             kickedUids.includes(client.userInfo.uid)
                         );
 
@@ -364,12 +366,13 @@ module.exports = server => {
                                 client => !kickedUids.includes(client.userInfo.uid)
                             );
 
+                            room.cachedClients = room.cachedClients.filter(item => !kickedUids.includes(item.userInfo.uid));
+                            allClients = room.cachedClients;
+
                             kickedUsers.forEach(user => {
                                 user.terminate();
-                                room.cachedClients = room.cachedClients.filter(item=>item.userInfo.uid!==user.userInfo.uid);
                             });
 
-                            const allClients = room.cachedClients;
                             const avatarUrls = room.clients.map(item => {
                                 const { avatarUrl = '' } = item.userInfo;
                                 return avatarUrl;
